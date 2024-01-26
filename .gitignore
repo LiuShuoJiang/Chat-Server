@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+# CLion Settings
+cmake-build-debug
+.clang-format
+.idea
