@@ -8,6 +8,9 @@
 #include "json.hpp"
 
 #include "UserModel.h"
+#include "OfflineMessageModel.h"
+#include "FriendModel.h"
+#include "GroupModel.h"
 
 using namespace muduo;
 using namespace muduo::net;
@@ -72,6 +75,9 @@ private:
 
     // Data operation object
     UserModel _userModel;
+    OfflineMessageModel _offlineMsgModel;
+    FriendModel _friendModel;
+    GroupModel _groupModel;
 };
 
 #endif//CHAT_PROJECT_CHATSERVICE_H

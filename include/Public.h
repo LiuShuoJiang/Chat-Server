@@ -5,7 +5,7 @@
 enum EnMsgType {
     LOGIN_MSG = 1,    // login message
     LOGIN_MSG_ACK,    // login response message
-    LOGOUT_MSG,     // logout message
+    LOGOUT_MSG,       // logout message
     REG_MSG,          // register message
     REG_MSG_ACK,      // register response message
     ONE_CHAT_MSG,     // chat message
