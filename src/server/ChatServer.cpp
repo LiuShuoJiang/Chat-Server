@@ -16,10 +16,10 @@ ChatServer::ChatServer(EventLoop *loop,
                        const string &nameArg)
     : _server(loop, listenAddr, nameArg), _loop(loop) {
     // Registering callbacks to the server for the creation and disconnection of user connections
-    _server.setConnectionCallback(std::bind(&ChatServer::onConnection, this, _1));
+    _server.setConnectionCallback([this](auto && PH1) { onConnection(std::forward<decltype(PH1)>(PH1)); });
 
     // Registering callbacks to the server for user read and write events
-    _server.setMessageCallback(std::bind(&ChatServer::onMessage, this, _1, _2, _3));
+    _server.setMessageCallback([this](auto && PH1, auto && PH2, auto && PH3) { onMessage(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); });
 
     // Set the number of threads on the server side
     // Here we set up 1 IO thread to handle user connections and 3 worker threads to handle event reads and writes
