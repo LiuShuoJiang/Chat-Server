@@ -12,6 +12,8 @@
 #include "FriendModel.h"
 #include "GroupModel.h"
 
+#include "Redis.h"
+
 using namespace muduo;
 using namespace muduo::net;
 using json = nlohmann::json;
@@ -59,7 +61,7 @@ public:
     MsgHandler getHandler(int msgid);
 
     // Get subscribed messages from the redis message queue
-    void handleRedisSubscribeMessage(int, string);
+    void handleRedisSubscribeMessage(int, std::string);
 
 private:
     ChatService();
@@ -78,6 +80,9 @@ private:
     OfflineMessageModel _offlineMsgModel;
     FriendModel _friendModel;
     GroupModel _groupModel;
+
+    // Redis oepration object
+    Redis _redis;
 };
 
 #endif//CHAT_PROJECT_CHATSERVICE_H

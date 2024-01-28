@@ -10,19 +10,22 @@ ChatService *ChatService::instance() {
 
 ChatService::ChatService() {
     // Registration of callbacks for handling events related to basic service management for users
-    _msgHandlerMap.insert({LOGIN_MSG, [this](auto && PH1, auto && PH2, auto && PH3) { login(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
-    _msgHandlerMap.insert({REG_MSG, [this](auto && PH1, auto && PH2, auto && PH3) { reg(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
-    _msgHandlerMap.insert({ONE_CHAT_MSG, [this](auto && PH1, auto && PH2, auto && PH3) { oneChat(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
-    _msgHandlerMap.insert({ADD_FRIEND_MSG, [this](auto && PH1, auto && PH2, auto && PH3) { addFriend(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
-    _msgHandlerMap.insert({LOGOUT_MSG, [this](auto && PH1, auto && PH2, auto && PH3) { logout(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
+    _msgHandlerMap.insert({LOGIN_MSG, [this](auto &&PH1, auto &&PH2, auto &&PH3) { login(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
+    _msgHandlerMap.insert({REG_MSG, [this](auto &&PH1, auto &&PH2, auto &&PH3) { reg(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
+    _msgHandlerMap.insert({ONE_CHAT_MSG, [this](auto &&PH1, auto &&PH2, auto &&PH3) { oneChat(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
+    _msgHandlerMap.insert({ADD_FRIEND_MSG, [this](auto &&PH1, auto &&PH2, auto &&PH3) { addFriend(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
+    _msgHandlerMap.insert({LOGOUT_MSG, [this](auto &&PH1, auto &&PH2, auto &&PH3) { logout(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
 
     // Registration of callbacks for event processing related to group operations management
-    _msgHandlerMap.insert({CREATE_GROUP_MSG, [this](auto && PH1, auto && PH2, auto && PH3) { createGroup(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
-    _msgHandlerMap.insert({ADD_GROUP_MSG, [this](auto && PH1, auto && PH2, auto && PH3) { addGroup(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
-    _msgHandlerMap.insert({GROUP_CHAT_MSG, [this](auto && PH1, auto && PH2, auto && PH3) { groupChat(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
+    _msgHandlerMap.insert({CREATE_GROUP_MSG, [this](auto &&PH1, auto &&PH2, auto &&PH3) { createGroup(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
+    _msgHandlerMap.insert({ADD_GROUP_MSG, [this](auto &&PH1, auto &&PH2, auto &&PH3) { addGroup(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
+    _msgHandlerMap.insert({GROUP_CHAT_MSG, [this](auto &&PH1, auto &&PH2, auto &&PH3) { groupChat(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); }});
 
     // Connect to Redis server
-
+    if (_redis.connect()) {
+        // Setting up callbacks for reporting messages
+        _redis.initNotifyHandler([this](auto &&PH1, auto &&PH2) { handleRedisSubscribeMessage(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
+    }
 }
 
 void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time) {
@@ -48,7 +51,7 @@ void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time) 
             }
 
             // Subscribe channel(id) to redis after successful login of "id" user
-
+            _redis.subscribe(id);
 
             // Update user status info: offline -> online
             user.setState("online");
@@ -72,7 +75,7 @@ void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time) 
             std::vector<User> userVec = _friendModel.query(id);
             if (!userVec.empty()) {
                 std::vector<std::string> friendVec;
-                for (User &u : userVec) {
+                for (User &u: userVec) {
                     json friendJs;
                     friendJs["id"] = u.getId();
                     friendJs["name"] = u.getName();
@@ -87,7 +90,7 @@ void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time) 
             if (!groupuserVec.empty()) {
                 // group:[{groupid:[xxx, xxx, xxx, xxx]}]
                 std::vector<std::string> groupV;
-                for (Group &group : groupuserVec) {
+                for (Group &group: groupuserVec) {
                     json groupJson;
                     groupJson["id"] = group.getId();
                     groupJson["groupname"] = group.getName();
@@ -180,7 +183,7 @@ void ChatService::clientCloseException(const TcpConnectionPtr &conn) {
     }
 
     // User logout, which is the equivalent of going offline: unsubscribe channel in redis
-
+    _redis.unsubscribe(user.getId());
 
     // Update user status info
     if (user.getId() != -1) {
@@ -204,7 +207,7 @@ void ChatService::oneChat(const TcpConnectionPtr &conn, json &js, Timestamp time
     // check if toId is online
     User user = _userModel.query(toId);
     if (user.getState() == "online") {
-
+        _redis.publish(toId, js.dump());
         return;
     }
 
@@ -245,14 +248,16 @@ void ChatService::groupChat(const TcpConnectionPtr &conn, json &js, Timestamp ti
     std::vector<int> useridVec = _groupModel.queryGroupUsers(userid, groupid);
 
     std::lock_guard<std::mutex> lock(_connMutex);
-    for (int id : useridVec) {
+    for (int id: useridVec) {
         auto it = _userConnMap.find(id);
         if (it != _userConnMap.end()) {
+            // forward group chat message
             it->second->send(js.dump());
         } else {
+            // query if toId is online
             User user = _userModel.query(id);
             if (user.getState() == "online") {
-
+                _redis.publish(id, js.dump());
             } else {
                 // store offline message
                 _offlineMsgModel.insert(id, js.dump());
@@ -272,9 +277,21 @@ void ChatService::logout(const TcpConnectionPtr &conn, json &js, Timestamp time)
     }
 
     // User logout, which is the equivalent of just going offline and unsubscribing from the channel in redis
-
+    _redis.unsubscribe(userid);
 
     // Update user status info
     User user(userid, "", "", "offline");
     _userModel.updateState(user);
+}
+
+void ChatService::handleRedisSubscribeMessage(int userid, std::string msg) {
+    std::lock_guard<std::mutex> lock(_connMutex);
+    auto it = _userConnMap.find(userid);
+    if (it != _userConnMap.end()) {
+        it->second->send(msg);
+        return;
+    }
+
+    // store the user offline message
+    _offlineMsgModel.insert(userid, msg);
 }
