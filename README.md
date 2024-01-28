@@ -19,7 +19,7 @@ Functions such as new user registration, user login, adding friends, adding grou
   - cmake >= v3.22
   - [Muduo](https://github.com/chenshuo/muduo) == v2.0.2
   - MySQL >= v8.0.0
-  - Redis
+  - Redis >= v7.2.4
   - Nginx >= 1.24.0
 
 ## Setup Guide
